@@ -24,15 +24,21 @@ export default function CameraScreen({handleCloseCamera}: Props) {
   const devices = useCameraDevices('wide-angle-camera');
   const device = devices.back;
   const [path, setPath] = useState('');
+  const [isSlience, setIsSlience] = useState(false);
 
   const takePhoto = async () => {
-    CameraShutterModule.playShutterSound(20);
+    console.log(isSlience);
+    CameraShutterModule.playShutterSound(isSlience ? 0 : 100);
     const result = await camera.current?.takePhoto();
     if (result?.path) {
       setPath(result?.path);
     }
     return result;
   };
+
+  const handleSilenceCamera = useCallback(() => {
+    setIsSlience(prev => !prev);
+  }, []);
 
   const checkPermission = useCallback(async () => {
     const permission = await check(PERMISSIONS.ANDROID.CAMERA);
@@ -80,6 +86,13 @@ export default function CameraScreen({handleCloseCamera}: Props) {
             </Pressable>
             <Pressable onPress={handleCloseCamera} style={styles.cameraButton}>
               <Text style={styles.cameraText}>취소</Text>
+            </Pressable>
+            <Pressable
+              onPress={handleSilenceCamera}
+              style={styles.cameraButton}>
+              <Text style={styles.cameraText}>
+                {isSlience ? '켜기' : '무음'}
+              </Text>
             </Pressable>
           </View>
         </>
