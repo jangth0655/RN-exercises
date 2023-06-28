@@ -1,11 +1,21 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
-import {Dimensions, Pressable, StyleSheet, Text, View} from 'react-native';
+import {
+  Alert,
+  Dimensions,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import {
   PERMISSIONS,
   PermissionStatus,
   RESULTS,
   check,
+  checkMultiple,
+  openSettings,
   request,
+  requestMultiple,
 } from 'react-native-permissions';
 import {Camera, useCameraDevices} from 'react-native-vision-camera';
 import CameraShutterModule from './cameraShutterModule';
@@ -40,29 +50,44 @@ export default function CameraScreen({handleCloseCamera}: Props) {
     setIsSlience(prev => !prev);
   }, []);
 
+  const requsetMultiplePermission = useCallback(async () => {
+    const multiplePermission = await requestMultiple([
+      PERMISSIONS.ANDROID.CAMERA,
+      PERMISSIONS.ANDROID.READ_MEDIA_AUDIO,
+    ]);
+    return (
+      multiplePermission['android.permission.CAMERA'] ||
+      multiplePermission['android.permission.READ_MEDIA_AUDIO']
+    );
+  }, []);
+
   const checkPermission = useCallback(async () => {
-    const permission = await check(PERMISSIONS.ANDROID.CAMERA);
+    const permission = await requsetMultiplePermission();
     switch (permission) {
       case RESULTS.GRANTED:
         setPermissionState(RESULTS.GRANTED);
         break;
       case RESULTS.DENIED:
-        const state = await request(PERMISSIONS.ANDROID.CAMERA);
-        if (state === RESULTS.GRANTED) {
-          setPermissionState(state);
-        } else {
-          return;
+        const state = await requsetMultiplePermission();
+        if (state === 'granted') {
+          console.log('state', state);
         }
         break;
+      case RESULTS.BLOCKED:
       case RESULTS.UNAVAILABLE:
       case RESULTS.LIMITED:
       case RESULTS.GRANTED:
-      case RESULTS.BLOCKED:
+        Alert.alert('권한 거부', '카메라 및 오디오 권한을 설정해주세요.', [
+          {
+            text: '설정 열기',
+            onPress: async () => await openSettings(),
+          },
+        ]);
         setPermissionState('unavailable');
         handleCloseCamera();
         break;
     }
-  }, [handleCloseCamera]);
+  }, [handleCloseCamera, requsetMultiplePermission]);
 
   useEffect(() => {
     checkPermission();
